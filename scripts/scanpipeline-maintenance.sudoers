@@ -1,0 +1,12 @@
+# Narrowly scoped: exactly these three command lines, no wildcards, so the
+# dashboard (running as scanpipeline) can trigger apt update/upgrade/reboot
+# from the Settings > Maintenance UI without full root access. Matches
+# app/dashboard.py's maintenance routes exactly -- if you change one, change
+# both.
+#
+# Install: sudo cp scripts/scanpipeline-maintenance.sudoers /etc/sudoers.d/scanpipeline-maintenance
+#          sudo chmod 440 /etc/sudoers.d/scanpipeline-maintenance
+#          sudo visudo -c
+scanpipeline ALL=(root) NOPASSWD: /usr/bin/apt-get update
+scanpipeline ALL=(root) NOPASSWD: /usr/bin/apt-get -y -o Dpkg\:\:Options\:\:\=--force-confdef -o Dpkg\:\:Options\:\:\=--force-confold upgrade
+scanpipeline ALL=(root) NOPASSWD: /usr/sbin/reboot

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+
+<div class="settings-card">
+    <label for="recipient_email">Recipient email</label>
+    <p class="meta">
+        {% if is_override %}
+        Custom value, set from this page — overrides RECIPIENT_EMAIL in .env.
+        {% else %}
+        Using the default from .env (RECIPIENT_EMAIL). Saving here overrides it
+        without needing a restart.
+        {% endif %}
+    </p>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="email" id="recipient_email" name="recipient_email" value="{{ recipient_email }}" required>
+        <button type="submit">Save</button>
+    </form>
+    {% if saved %}<p class="success-msg">{{ icon('check-circle', 14) }} Saved — takes effect on the next scan.</p>{% endif %}
+    {% if error %}<p class="error-msg">{{ icon('alert-triangle', 14) }} {{ error }}</p>{% endif %}
+</div>
+
+<div class="settings-card maintenance-card">
+    <h2>{{ icon('settings', 18) }} Maintenance</h2>
+
+    {% if not maintenance_enabled %}
+    <p class="meta">
+        Set <code>DASHBOARD_SETTINGS_PASSWORD</code> in <code>.env</code> to enable this section —
+        it runs real system commands (package upgrades, reboot), so it stays off by default even
+        though the rest of the dashboard doesn't require a password.
+    </p>
+    {% else %}
+        {% if maintenance.running %}
+        <p class="meta"><strong>{{ icon('clock', 14) }} An update is currently running</strong> — refresh this page to check progress.</p>
+        {% endif %}
+        <div class="maintenance-actions">
+            <form method="post" action="/settings/maintenance/check">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" {{ 'disabled' if maintenance.running }}>{{ icon('check-circle', 16) }} Check for updates</button>
+            </form>
+            <form method="post" action="/settings/maintenance/patch" onsubmit="return confirm('Install all available updates now? This can take several minutes on a Pi 3B and may briefly disrupt the pipeline.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" {{ 'disabled' if maintenance.running }}>{{ icon('download', 16) }} Install updates</button>
+            </form>
+            <form method="post" action="/settings/maintenance/reboot" onsubmit="return confirm('Reboot the Pi now? Any scan in progress will be interrupted.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="danger-button" {{ 'disabled' if maintenance.running }}>{{ icon('alert-triangle', 16) }} Reboot now</button>
+            </form>
+        </div>
+        {% if maintenance.log_tail %}
+        <details class="maintenance-log">
+            <summary>Last run output</summary>
+            <pre>{{ maintenance.log_tail }}</pre>
+        </details>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

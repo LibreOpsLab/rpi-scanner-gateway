@@ -1,5 +1,5 @@
 """
-Watches SCAN_INBOX for new PDFs dropped by the Brother's SMB scan-to-folder
+Watches SCAN_INBOX for new PDFs dropped by the Printer's SMB scan-to-folder
 job, then runs the full pipeline:
 
   1. Wait for the file to finish writing (SMB writes aren't instantaneous)
@@ -8,7 +8,7 @@ job, then runs the full pipeline:
   4. Generate thumbnail
   5. Archive a local copy (kept RETENTION_DAYS)
   6. Upload to OneDrive
-  7. Email the uncle
+  7. Email the recipient
   8. Update dashboard DB at every step so failures are visible, not silent
 
 Run as a systemd service (see systemd/scan-watcher.service) so it survives
@@ -26,7 +26,8 @@ from app.config import config
 from app import db
 from app.blank_pages import strip_blank_pages
 from app.ocr import run_ocr, make_thumbnail, OcrError
-from app.graph import upload_to_onedrive, send_email, GraphError
+from app.graph import upload_to_onedrive, GraphError
+from app.email import get_email_sender, EmailError
 
 logging.basicConfig(
     level=logging.INFO,
@@ -100,26 +101,36 @@ def process_file(src_path: Path):
         shutil.copyfile(ocr_output_path, archive_path)
         db.update_job(job_id, archive_path=str(archive_path))
 
-        # --- Step 5: upload to OneDrive ---
-        db.update_job(job_id, status="uploading")
-        onedrive_link = upload_to_onedrive(str(ocr_output_path), filename)
-        db.update_job(job_id, onedrive_link=onedrive_link)
+        # --- Step 5: upload to OneDrive (optional, STORAGE_PROVIDER=none skips it) ---
+        onedrive_link = None
+        if config.STORAGE_PROVIDER == "onedrive":
+            db.update_job(job_id, status="uploading")
+            onedrive_link = upload_to_onedrive(str(ocr_output_path), filename)
+            db.update_job(job_id, onedrive_link=onedrive_link)
 
-        # --- Step 6: email the uncle ---
-        size_mb = compressed_size / (1024 * 1024)
-        body = f"""
-        <p>Hi,</p>
-        <p>Your scanned document <b>{filename}</b> is ready.</p>
-        <p>{kept} page(s) processed{f', {removed} blank page(s) removed' if removed else ''}.
-        File size: {size_mb:.1f} MB.</p>
-        <p>A copy has also been saved to your OneDrive:<br>
-        <a href="{onedrive_link}">{onedrive_link}</a></p>
-        """
-        send_email(subject=f"Scanned: {filename}", body_html=body, attachment_path=str(ocr_output_path))
-        db.update_job(job_id, email_sent=1, status="done")
+        # --- Step 6: email the recipient (optional, EMAIL_PROVIDER=none skips it) ---
+        email_sender = get_email_sender()
+        if email_sender:
+            size_mb = compressed_size / (1024 * 1024)
+            storage_note = (
+                f'<p>A copy has also been saved to your OneDrive:<br>'
+                f'<a href="{onedrive_link}">{onedrive_link}</a></p>'
+                if onedrive_link else ""
+            )
+            body = f"""
+            <p>Hi,</p>
+            <p>Your scanned document <b>{filename}</b> is ready.</p>
+            <p>{kept} page(s) processed{f', {removed} blank page(s) removed' if removed else ''}.
+            File size: {size_mb:.1f} MB.</p>
+            {storage_note}
+            """
+            email_sender.send(subject=f"Scanned: {filename}", body_html=body, attachment_path=str(ocr_output_path))
+            db.update_job(job_id, email_sent=1)
+
+        db.update_job(job_id, status="done")
         logger.info("Job %s complete: %s", job_id, filename)
 
-    except (OcrError, GraphError) as e:
+    except (OcrError, GraphError, EmailError) as e:
         logger.error("Job %s failed: %s", job_id, e)
         _fail_job(job_id, work_dir, filename, str(e))
     except Exception as e:

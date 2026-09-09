@@ -1,19 +1,18 @@
 """
-Microsoft Graph integration — app-only (client credentials) auth.
+Microsoft Graph integration — OneDrive upload only (email sending moved to
+app/email/graph_sender.py, which uses certificate auth via app/graph_auth.py
+instead of the client secret this module still uses).
 
 Why app-only instead of delegated: this runs unattended on a Pi with no
 browser and no one around to re-consent when a refresh token expires.
-Client credentials + a secret (or cert) just works indefinitely with zero
-babysitting.
+Client credentials + a secret just works indefinitely with zero babysitting.
 
 Required Entra app registration:
-  - Application permissions (admin-consented): Mail.Send, Files.ReadWrite.All
-  - IMPORTANT: scope Mail.Send down with an Exchange "Application Access
-    Policy" so this app can only send as SEND_FROM_MAILBOX, not any mailbox
-    in the tenant. See docs/SETUP.md.
-  - For OneDrive, upload goes to /users/{UNCLE_EMAIL}/drive/... — Files.ReadWrite.All
-    grants access tenant-wide, so restrict via the same kind of policy if your
-    tenant supports it, or accept the broader grant for a single-user tenant.
+  - Application permission (admin-consented): Files.ReadWrite.All
+  - Upload goes to /users/{ONEDRIVE_USER_EMAIL}/drive/... — Files.ReadWrite.All
+    grants access tenant-wide, so restrict via an Application Access Policy
+    if your tenant supports it, or accept the broader grant for a
+    single-user tenant.
 """
 import logging
 import msal
@@ -48,7 +47,7 @@ def _headers() -> dict:
 
 def upload_to_onedrive(local_path: str, filename: str) -> str:
     """
-    Uploads to config.ONEDRIVE_FOLDER_PATH in the uncle's OneDrive.
+    Uploads to config.ONEDRIVE_FOLDER_PATH in the target user's OneDrive.
     Uses a simple PUT for files under 4MB, resumable upload session above that
     (scanned PDFs after compression are usually well under 4MB, but 15-20 page
     docs with images can exceed it).
@@ -56,7 +55,7 @@ def upload_to_onedrive(local_path: str, filename: str) -> str:
     """
     file_size = Path(local_path).stat().st_size
     remote_path = f"{config.ONEDRIVE_FOLDER_PATH.strip('/')}/{filename}"
-    user = config.UNCLE_EMAIL
+    user = config.ONEDRIVE_USER_EMAIL
 
     if file_size <= 4 * 1024 * 1024:
         url = f"{GRAPH_BASE}/users/{user}/drive/root:/{remote_path}:/content"
@@ -91,35 +90,3 @@ def upload_to_onedrive(local_path: str, filename: str) -> str:
             offset += len(chunk)
 
     return put_resp.json().get("webUrl", "")
-
-
-def send_email(subject: str, body_html: str, attachment_path: str | None = None):
-    """
-    Sends from config.SEND_FROM_MAILBOX to config.UNCLE_EMAIL.
-    Attaches the PDF directly if under 3MB (Graph inline attachment limit
-    is technically higher, but we keep a safety margin); otherwise the
-    OneDrive link in the email body is the delivery method.
-    """
-    message = {
-        "message": {
-            "subject": subject,
-            "body": {"contentType": "HTML", "content": body_html},
-            "toRecipients": [{"emailAddress": {"address": config.UNCLE_EMAIL}}],
-        },
-        "saveToSentItems": "true",
-    }
-
-    if attachment_path and Path(attachment_path).stat().st_size <= 3 * 1024 * 1024:
-        import base64
-        with open(attachment_path, "rb") as f:
-            content_b64 = base64.b64encode(f.read()).decode()
-        message["message"]["attachments"] = [{
-            "@odata.type": "#microsoft.graph.fileAttachment",
-            "name": Path(attachment_path).name,
-            "contentBytes": content_b64,
-        }]
-
-    url = f"{GRAPH_BASE}/users/{config.SEND_FROM_MAILBOX}/sendMail"
-    resp = requests.post(url, headers=_headers(), json=message)
-    if resp.status_code != 202:
-        raise GraphError(f"sendMail failed ({resp.status_code}): {resp.text}")

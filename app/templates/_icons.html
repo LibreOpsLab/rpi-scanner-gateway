@@ -1,0 +1,35 @@
+{#
+Shared inline-SVG icon sprite + `icon()` macro. Self-contained (no external
+font/CDN) so the dashboard renders identically even if the Pi has no
+internet that day. Import with `{% from "_icons.html" import icon %}` and
+call `{{ icon('home') }}` / `{{ icon('home', size=28, extra_class='xl') }}`.
+
+Style is deliberately uniform across all symbols: 24x24 viewBox, currentColor
+stroke, no fill — so every icon inherits its color from CSS (e.g. a stat
+card can recolor its icon red for a warning state without a second asset).
+#}
+{% macro icon(name, size=18, extra_class='') %}<svg class="icon {{ extra_class }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-{{ name }}"/></svg>{% endmacro %}
+
+{% macro sprite() %}
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-scan" viewBox="0 0 24 24"><path d="M4 7V4h3M20 7V4h-3M4 17v3h3M20 17v3h-3"/><rect x="7" y="8" width="10" height="8" rx="1"/></symbol>
+  <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></symbol>
+  <symbol id="icon-history" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2"/><path d="M9 2h6"/></symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1.7 1.7 0 000-2l1.3-1.6-2-3.4-1.9.6a1.7 1.7 0 01-1.7-1L14.6 3h-5.2l-.5 2.6a1.7 1.7 0 01-1.7 1l-1.9-.6-2 3.4L4.6 11a1.7 1.7 0 000 2l-1.3 1.6 2 3.4 1.9-.6a1.7 1.7 0 011.7 1l.5 2.6h5.2l.5-2.6a1.7 1.7 0 011.7-1l1.9.6 2-3.4L19.4 13z"/></symbol>
+  <symbol id="icon-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.7-2.3 2-2.5 3.5"/><path d="M12 17.5v.1"/></symbol>
+  <symbol id="icon-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></symbol>
+  <symbol id="icon-cloud" viewBox="0 0 24 24"><path d="M7 18h11a4 4 0 000-8 6 6 0 00-11.6 1.6A3.5 3.5 0 007 18z"/></symbol>
+  <symbol id="icon-thermometer" viewBox="0 0 24 24"><path d="M12 3a2 2 0 00-2 2v9.5a4 4 0 102 0V5a2 2 0 00-2-2z"/><circle cx="12" cy="17" r="1.6"/></symbol>
+  <symbol id="icon-disk" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+  <symbol id="icon-network" viewBox="0 0 24 24"><path d="M4.5 10a10.5 10.5 0 0115 0"/><path d="M7.5 13.5a6.5 6.5 0 019 0"/><path d="M10.5 17a2.5 2.5 0 013 0"/><circle cx="12" cy="20" r="0.8" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="icon-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></symbol>
+  <symbol id="icon-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+  <symbol id="icon-alert-triangle" viewBox="0 0 24 24"><path d="M12 4l9.5 16h-19z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+  <symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+  <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7.5 11L12 15.5 16.5 11"/><path d="M4 18v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></symbol>
+  <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13"/></symbol>
+  <symbol id="icon-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M3 17l5.5-5.5a2 2 0 012.8 0L18 18"/></symbol>
+  <symbol id="icon-broom" viewBox="0 0 24 24"><path d="M14 3l7 7-8.5 8.5a3.5 3.5 0 01-5-5L14 3z"/><path d="M4 21c1-3 3-4 5-4"/><path d="M4 21c3-1 4-3 4-5"/></symbol>
+</svg>
+{% endmacro %}

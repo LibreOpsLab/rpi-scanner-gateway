@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Help{% endblock %}
+
+{% block content %}
+<h1>Help</h1>
+
+<section class="help-section">
+    <h2>{{ icon('history', 18) }} Status meanings</h2>
+    <dl class="help-dl">
+        <dt><span class="badge neutral">Received</span></dt>
+        <dd>The Printer has dropped a file and it's queued to be processed.</dd>
+        <dt><span class="badge working">Processing…</span></dt>
+        <dd>Blank pages are being stripped and the OCR/compression pass is running. This is the slowest step — a multi-page document can take a few minutes on a Pi 3B.</dd>
+        <dt><span class="badge working">Uploading…</span></dt>
+        <dd>Only appears if cloud storage is enabled ({{ icon('cloud', 14) }} currently: <strong>{{ storage_provider }}</strong>) — the processed PDF is being copied to OneDrive.</dd>
+        <dt><span class="badge good">Ready</span></dt>
+        <dd>Done. The scan is archived and viewable/downloadable from <a href="/details">History</a>, and if email is enabled ({{ icon('mail', 14) }} currently: <strong>{{ email_provider }}</strong>) the notification has been sent.</dd>
+        <dt><span class="badge bad">Failed</span></dt>
+        <dd>Something in the pipeline errored. The specific error is shown on the <a href="/details">History</a> row, and the original file is preserved for reprocessing.</dd>
+    </dl>
+</section>
+
+<section class="help-section">
+    <h2>{{ icon('alert-triangle', 18) }} Troubleshooting</h2>
+    <dl class="help-dl">
+        <dt>A scan shows Failed</dt>
+        <dd>Check the error text on its <a href="/details">History</a> row — it's the actual exception message, not a generic code. The original file is kept so nothing is lost; once whatever's wrong is fixed, drop it back into the scan inbox to reprocess. Clear out old failures with the <em>Clean Failed</em> button on the History page.</dd>
+        <dt>The Printer can't reach the share / scan never arrives</dt>
+        <dd>Confirm the Pi is on the network and the Samba share is up (<code>smb://&lt;pi-ip-or-tailscale-name&gt;/scans</code> should connect from a laptop using the <code>scanner</code> account). If that works but scans still don't appear, check that the Printer's saved profile still has the right IP — it changes if the Pi's address isn't static/reserved.</dd>
+        <dt>No notification email arrives</dt>
+        <dd>
+            {% if email_provider == 'none' %}
+            Expected — email is currently turned off (<code>EMAIL_PROVIDER=none</code>). Check <a href="/details">History</a> instead.
+            {% else %}
+            First confirm the job actually shows <em>Emailed</em> on its History row — if not, the send itself failed and the error is in that row's message. If it says Emailed but nothing arrived, check spam, and confirm the recipient address on <a href="/settings">Settings</a> is current.
+            {% endif %}
+        </dd>
+    </dl>
+</section>
+
+<section class="help-section">
+    <h2>{{ icon('disk', 18) }} Where things live</h2>
+    <dl class="help-dl">
+        <dt>Incoming scans</dt>
+        <dd><code>{{ scan_inbox }}</code></dd>
+        <dt>Local archive</dt>
+        <dd><code>{{ scan_archive }}</code> — kept for <strong>{{ retention_days }} days</strong>, then cleaned up automatically.</dd>
+        <dt>Email notifications</dt>
+        <dd>
+            {% if email_provider == 'none' %}
+            Off (<code>EMAIL_PROVIDER=none</code>) — view scans from <a href="/details">History</a> instead.
+            {% else %}
+            On, via <strong>{{ email_provider }}</strong>, sent to <strong>{{ recipient_email }}</strong> (change this on <a href="/settings">Settings</a>).
+            {% endif %}
+        </dd>
+        <dt>Cloud storage</dt>
+        <dd>
+            {% if storage_provider == 'none' %}
+            Off (<code>STORAGE_PROVIDER=none</code>) — the local archive above is the only copy.
+            {% else %}
+            On, mirrored to <strong>{{ storage_provider }}</strong>.
+            {% endif %}
+        </dd>
+    </dl>
+</section>
+{% endblock %}

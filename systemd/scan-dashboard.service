@@ -12,8 +12,24 @@ ExecStart=/opt/scan-pipeline/venv/bin/python -m app.dashboard
 Restart=on-failure
 RestartSec=10
 
-NoNewPrivileges=true
 PrivateTmp=true
+
+# Lets the dashboard bind port 80 directly (set DASHBOARD_PORT=80 in .env)
+# without running as root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# NoNewPrivileges is deliberately NOT set here (unlike scan-watcher.service),
+# and CapabilityBoundingSet is deliberately left at its default (unrestricted)
+# rather than narrowed to just CAP_NET_BIND_SERVICE: both would block sudo
+# outright -- NoNewPrivileges directly, CapabilityBoundingSet by capping what
+# even a setuid-root binary can ever gain, which excludes the CAP_SETUID/
+# CAP_SETGID sudo itself needs to become root ("sudo: unable to change to
+# root gid" is what that looks like if you reintroduce it). The Settings >
+# Maintenance feature needs scanpipeline to sudo into three exact,
+# narrowly-scoped commands (apt-get update/upgrade, reboot — see
+# scripts/scanpipeline-maintenance.sudoers). The trade-off is intentional:
+# those sudoers entries are the actual privilege boundary now, not these
+# flags.
 
 [Install]
 WantedBy=multi-user.target

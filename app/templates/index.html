@@ -1,43 +1,100 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="15">
-    <title>Scanner Status</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<div class="container">
-    <h1>📠 Scanner Status</h1>
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block meta_refresh %}<meta http-equiv="refresh" content="15">{% endblock %}
+{% block title %}Scanner Status{% endblock %}
 
-    {% if job %}
-    <div class="big-status {{ job.status_class }}">
-        {% if job.status == 'done' %}
-            <div class="icon">✅</div>
-        {% elif job.status == 'failed' %}
-            <div class="icon">❌</div>
-        {% else %}
-            <div class="icon">⏳</div>
-        {% endif %}
-        <div class="filename">{{ job.filename }}</div>
-        <div>{{ job.status_label }}</div>
-        <div class="meta">
-            {{ job.created_at_fmt }}
-            {% if job.page_count %} &middot; {{ job.page_count }} page(s){% endif %}
-            {% if job.compressed_size_fmt != '—' %} &middot; {{ job.compressed_size_fmt }}{% endif %}
+{% block content %}
+
+{% if in_flight %}
+<div class="processing-banner">{{ icon('clock', 20) }} Processing: {{ in_flight.filename }}</div>
+{% endif %}
+
+<div class="stats-grid">
+    <div class="stat-card {{ 'warn' if stats.throttled }}">
+        {{ icon('thermometer', 24) }}
+        <div>
+            <div class="stat-value">{{ '%.0f'|format(stats.temp_c) + '°C' if stats.temp_c is not none else '—' }}</div>
+            <div class="stat-label">{{ 'Under-voltage!' if stats.throttled else 'Pi temperature' }}</div>
         </div>
-        {% if job.status == 'done' %}
-        <div class="meta">Emailed &amp; saved to OneDrive ✔</div>
-        {% elif job.status == 'failed' %}
-        <div class="meta">Something went wrong — check /details or ask your nephew</div>
+    </div>
+    <div class="stat-card">
+        {{ icon('disk', 24) }}
+        <div>
+            <div class="stat-value">{{ stats.disk_free_gb ~ ' GB' if stats.disk_free_gb is not none else '—' }}</div>
+            <div class="stat-label">Free space</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        {{ icon('history', 24) }}
+        <div>
+            <div class="stat-value">{{ stats.scans_today }} today</div>
+            <div class="stat-label">{{ stats.scans_week }} this week</div>
+        </div>
+    </div>
+    <div class="stat-card {{ 'warn' if stats.tailscale_online == false }}">
+        {{ icon('network', 24) }}
+        <div>
+            <div class="stat-value">
+                {% if stats.tailscale_online is none %}—
+                {% elif stats.tailscale_online %}Online
+                {% else %}Offline{% endif %}
+            </div>
+            <div class="stat-label">Tailscale</div>
+        </div>
+    </div>
+</div>
+
+{% if job %}
+<div class="big-status {{ job.status_class }}">
+    {% if job.archive_path %}
+    <form class="inline-form big-status-delete" method="post" action="/scans/{{ job.id }}/delete" onsubmit="return confirm('Delete this scan permanently? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="redirect_to" value="home">
+        <button type="submit" class="icon-action danger" title="Delete" aria-label="Delete">{{ icon('trash', 18) }}</button>
+    </form>
+    {% endif %}
+    {% if job.thumbnail_path %}
+    <a href="/scans/{{ job.id }}/view" target="_blank">
+        <img class="preview" src="/thumb/{{ job.id }}" alt="Preview of {{ job.filename }}">
+    </a>
+    {% else %}
+        {% if job.status == 'done' %}{{ icon('check-circle', 48, 'status-icon good') }}
+        {% elif job.status == 'failed' %}{{ icon('x-circle', 48, 'status-icon bad') }}
+        {% else %}{{ icon('clock', 48, 'status-icon working') }}
+        {% endif %}
+    {% endif %}
+    <div class="filename">{{ job.filename }}</div>
+    <div>{{ job.status_label }}</div>
+    <div class="meta">
+        {{ job.created_at_fmt }}
+        {% if job.page_count %} &middot; {{ job.page_count }} page(s){% endif %}
+        {% if job.compressed_size_fmt != '—' %} &middot; {{ job.compressed_size_fmt }}{% endif %}
+    </div>
+    {% if job.status == 'done' %}
+    <div class="meta status-detail">
+        {% if job.email_sent and job.onedrive_link %}{{ icon('mail', 16) }} Emailed &amp; {{ icon('cloud', 16) }} saved to OneDrive
+        {% elif job.email_sent %}{{ icon('mail', 16) }} Emailed
+        {% elif job.onedrive_link %}{{ icon('cloud', 16) }} Saved to OneDrive
+        {% else %}{{ icon('check-circle', 16) }} Ready to view/download below
         {% endif %}
     </div>
-    {% else %}
-    <div class="empty-state">No scans yet. Once you scan something, it'll show up here.</div>
+    {% elif job.status == 'failed' %}
+    <div class="meta status-detail">Something went wrong — check <a href="/details">History</a> for details</div>
     {% endif %}
-
-    <a class="details-link" href="/details">View full history →</a>
 </div>
-</body>
-</html>
+{% else %}
+<div class="empty-state">
+    {{ icon('image', 48) }}
+    <p>No scans yet. Once you scan something, it'll show up here.</p>
+</div>
+{% endif %}
+
+{% if email_stats %}
+<div class="email-summary">
+    {{ icon('mail', 16) }} Last 7 days: <strong>{{ email_stats.sent }}</strong> emailed
+    {% if email_stats.not_sent %}, <strong>{{ email_stats.not_sent }}</strong> not sent — see <a href="/details">History</a>{% endif %}
+</div>
+{% endif %}
+
+<a class="details-link" href="/details">View full history →</a>
+{% endblock %}

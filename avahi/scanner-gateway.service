@@ -1,0 +1,17 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!--
+  LAN mDNS advertisement for the dashboard, independent of the Pi's own
+  hostname and of Tailscale MagicDNS (see docs/SETUP.md step 8 for how
+  this gets installed, and step 7 for the Tailscale alternative).
+
+  <port> below must match DASHBOARD_PORT in .env — it's not read from
+  there automatically, so if you change one, change both.
+-->
+<service-group>
+  <name replace-wildcards="yes">Scanner Gateway on %h</name>
+  <service>
+    <type>_http._tcp</type>
+    <port>80</port>
+  </service>
+</service-group>

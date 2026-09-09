@@ -1,69 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta http-equiv="refresh" content="20">
-    <title>Scan Job History</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <style>.container { max-width: 1100px; }</style>
-</head>
-<body>
-<div class="container">
-    <h1>📠 Scan Job History <a href="/" style="font-size:0.9rem; font-weight:normal;">← simple view</a></h1>
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block meta_refresh %}<meta http-equiv="refresh" content="20">{% endblock %}
+{% block title %}Scan Job History{% endblock %}
+{% block body_class %}wide{% endblock %}
 
-    {% if jobs %}
-    <table>
-        <thead>
-        <tr>
-            <th></th>
-            <th>File</th>
-            <th>Status</th>
-            <th>When</th>
-            <th>Pages</th>
-            <th>Size</th>
-            <th>Links</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for job in jobs %}
-        <tr>
-            <td>
-                {% if job.thumbnail_path %}
-                <img class="thumb" src="/thumb/{{ job.id }}" alt="">
-                {% endif %}
-            </td>
-            <td>{{ job.filename }}</td>
-            <td>
-                <span class="badge {{ job.status_class }}">{{ job.status_label }}</span>
-                {% if job.error_message %}
-                <div class="error-msg">{{ job.error_message }}</div>
-                {% endif %}
-            </td>
-            <td>{{ job.created_at_fmt }}</td>
-            <td>
-                {{ job.page_count or '—' }}
-                {% if job.blank_pages_removed %}
-                <div class="savings">{{ job.blank_pages_removed }} blank removed</div>
-                {% endif %}
-            </td>
-            <td>
-                {{ job.compressed_size_fmt }}
-                {% if job.saved_pct %}
-                <div class="savings">-{{ job.saved_pct }}% vs original</div>
-                {% endif %}
-            </td>
-            <td>
-                {% if job.onedrive_link %}<a href="{{ job.onedrive_link }}" target="_blank">OneDrive</a>{% endif %}
-                {% if job.email_sent %} &middot; Emailed{% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="empty-state">No scans yet.</div>
+{% block content %}
+<div class="page-header">
+    <h1>Scan Job History</h1>
+    {% if failed_count %}
+    <form class="inline-form" method="post" action="/jobs/clean-failed" onsubmit="return confirm('Delete {{ failed_count }} failed job(s) and their preserved originals? This cannot be undone.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="link-button danger">{{ icon('broom', 16) }} Clean Failed ({{ failed_count }})</button>
+    </form>
     {% endif %}
 </div>
-</body>
-</html>
+
+{% if jobs %}
+<table>
+    <thead>
+    <tr>
+        <th></th>
+        <th>File</th>
+        <th>Status</th>
+        <th>When</th>
+        <th>Pages</th>
+        <th>Size</th>
+        <th>Links</th>
+        <th class="col-center">Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for job in jobs %}
+    <tr>
+        <td>
+            {% if job.thumbnail_path %}
+            <a href="/scans/{{ job.id }}/view" target="_blank">
+                <img class="thumb" src="/thumb/{{ job.id }}" alt="">
+            </a>
+            {% endif %}
+        </td>
+        <td>{{ job.filename }}</td>
+        <td>
+            <span class="badge {{ job.status_class }}">{{ job.status_label }}</span>
+            {% if job.error_message %}
+            <div class="error-msg">{{ job.error_message }}</div>
+            {% endif %}
+        </td>
+        <td>{{ job.created_at_fmt }}</td>
+        <td>
+            {{ job.page_count or '—' }}
+            {% if job.blank_pages_removed %}
+            <div class="savings">{{ job.blank_pages_removed }} blank removed</div>
+            {% endif %}
+        </td>
+        <td>
+            {{ job.compressed_size_fmt }}
+            {% if job.saved_pct %}
+            <div class="savings">-{{ job.saved_pct }}% vs original</div>
+            {% endif %}
+        </td>
+        <td>
+            {% if job.onedrive_link %}<a href="{{ job.onedrive_link }}" target="_blank">{{ icon('cloud', 14) }} OneDrive</a>{% endif %}
+            {% if job.email_sent %} &middot; {{ icon('mail', 14) }} Emailed{% endif %}
+        </td>
+        <td class="actions">
+            {% if job.archive_path %}
+            <div class="actions-inner">
+                <a class="icon-action" href="/scans/{{ job.id }}/view" target="_blank" title="View" aria-label="View">{{ icon('eye', 18) }}</a>
+                <a class="icon-action" href="/scans/{{ job.id }}/download" title="Download" aria-label="Download">{{ icon('download', 18) }}</a>
+                <form class="inline-form" method="post" action="/scans/{{ job.id }}/delete" onsubmit="return confirm('Delete this scan permanently? This cannot be undone.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="icon-action danger" title="Delete" aria-label="Delete">{{ icon('trash', 18) }}</button>
+                </form>
+            </div>
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="empty-state">
+    {{ icon('image', 48) }}
+    <p>No scans yet.</p>
+</div>
+{% endif %}
+{% endblock %}

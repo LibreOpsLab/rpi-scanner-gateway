@@ -12,10 +12,16 @@ OCR + compression pass via ocrmypdf.
 --clean               removes scan speckle/noise before OCR (improves accuracy)
 """
 import subprocess
+import sys
 import logging
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# systemd gives the service a bare PATH that doesn't include venv/bin, so a
+# plain "ocrmypdf" lookup fails even though ExecStart points at the venv's
+# python — resolve the console script as a sibling of the interpreter instead.
+_OCRMYPDF = str(Path(sys.executable).with_name("ocrmypdf"))
 
 
 class OcrError(Exception):
@@ -24,7 +30,7 @@ class OcrError(Exception):
 
 def run_ocr(input_path: str, output_path: str, jobs: int = 4, language: str = "eng"):
     cmd = [
-        "ocrmypdf",
+        _OCRMYPDF,
         "--jobs", str(jobs),
         "--language", language,
         "--optimize", "3",

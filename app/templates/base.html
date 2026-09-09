@@ -1,0 +1,27 @@
+{% from "_icons.html" import icon, sprite %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% block meta_refresh %}{% endblock %}
+    <title>{% block title %}Scanner Gateway{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{{ sprite() }}
+<nav class="toolbar">
+    <div class="toolbar-inner">
+        <a class="toolbar-brand" href="/">{{ icon('scan', 22) }}<span>Scanner Gateway</span></a>
+        <div class="toolbar-links">
+            <a class="toolbar-link {{ 'active' if active_page == 'home' }}" href="/">{{ icon('home') }}<span>Home</span></a>
+            <a class="toolbar-link {{ 'active' if active_page == 'history' }}" href="/details">{{ icon('history') }}<span>History</span></a>
+            <a class="toolbar-link {{ 'active' if active_page == 'settings' }}" href="/settings">{{ icon('settings') }}<span>Settings</span></a>
+            <a class="toolbar-link {{ 'active' if active_page == 'help' }}" href="/help">{{ icon('help') }}<span>Help</span></a>
+        </div>
+    </div>
+</nav>
+<div class="container">
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>

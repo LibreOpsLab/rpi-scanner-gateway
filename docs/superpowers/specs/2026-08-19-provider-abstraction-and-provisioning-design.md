@@ -5,7 +5,7 @@ Status: Approved, ready for implementation planning
 
 ## Context
 
-`rpi-scanner-gateway` is a working pipeline (Brother MFP → SMB → blank-page
+`rpi-scanner-gateway` is a working pipeline (Printer MFP → SMB → blank-page
 strip → OCR → local archive → OneDrive → email) built for one deployment
 (Andy's uncle, M365 tenant, tenant Global Admin access). It's about to serve
 two purposes at once:
@@ -227,7 +227,7 @@ each individually guarded so a re-run skips completed steps:
 6. Install the systemd units (`cp` + `daemon-reload` + `enable`, but
    **not** `start` — `.env` isn't filled in yet at this point).
 7. Print next steps: fill in `.env` per the provider you're using (link
-   to SETUP.md sections), configure the Brother panel, install
+   to SETUP.md sections), configure the Printer panel, install
    Tailscale, then `sudo systemctl start scan-watcher scan-dashboard`
    and enable the retention timer.
 
@@ -235,7 +235,7 @@ each individually guarded so a re-run skips completed steps:
 Imager OS Customisation (with an explicit callout on *why*, referencing
 the cloud-init unreliability), Step 1 is SSH in + clone + run
 `install.sh`, and the remaining steps are the parts that genuinely need a
-human at an external portal — Brother panel config, chosen email
+human at an external portal — Printer panel config, chosen email
 provider's setup (subsection per provider: Gmail, Microsoft Live, Apple
 iCloud, cPanel, and M365 Graph with the cert-generation walkthrough),
 chosen storage provider's setup, Tailscale, then starting services and

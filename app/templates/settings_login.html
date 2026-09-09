@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Settings — Sign in{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+
+<div class="settings-card">
+    <label for="password">Password</label>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="password" id="password" name="password" required autofocus>
+        <button type="submit">Sign in</button>
+    </form>
+    {% if error %}<p class="error-msg">{{ icon('alert-triangle', 14) }} {{ error }}</p>{% endif %}
+</div>
+{% endblock %}
